@@ -267,25 +267,58 @@ class PaperTradingSimulator:
         return portfolio_value
 
 
+def _to_python_types(value):
+    """Convert numpy/pandas types to Python native types for JSON serialization."""
+    if isinstance(value, dict):
+        return {k: _to_python_types(v) for k, v in value.items()}
+    elif isinstance(value, (list, tuple)):
+        return [_to_python_types(v) for v in value]
+    elif isinstance(value, np.integer):
+        return int(value)
+    elif isinstance(value, np.floating):
+        return float(value)
+    elif isinstance(value, np.ndarray):
+        return value.tolist()
+    elif isinstance(value, (pd.Series, pd.Index)):
+        return value.tolist()
+    elif isinstance(value, (float, int, str, bool, type(None))):
+        return value
+    else:
+        return value
+
+
 def _normalize_suggestions(suggestions):
+    """Normalize suggestions and convert all types to Python native types."""
     normalized = {}
     for code, detail in suggestions.items():
         normalized[code] = {
-            'action': detail['action'],
+            'action': str(detail['action']),
             'shares': int(detail['shares']) if detail['action'] == 'BUY' else float(detail['shares']),
             'amount': float(detail['amount']),
             'price': float(detail['price']) if detail['price'] is not None else None,
-            'note': detail.get('note', '')
+            'note': str(detail.get('note', ''))
         }
-    return normalized
+    return _to_python_types(normalized)
 
 
-def make_suggestion(ticker=None, cash=30000, mode='paper'):
+def make_suggestion(ticker=None, cash=30000, mode='paper', execute=True):
+    """Generate AI trading suggestions and optionally execute trades.
+    
+    Args:
+        ticker: None, empty string, 'auto', 'AUTO', single string, or list of strings
+        cash: Initial cash amount (default 30000)
+        mode: Only 'paper' is supported
+        execute: If True, execute trades and update account
+    
+    Returns:
+        Dict with suggestions, prices, and account state
+    """
     if mode != 'paper':
         raise ValueError("Only 'paper' mode is supported")
 
-    if ticker is None:
-        tickers = None
+    # Handle ticker normalization
+    if ticker is None or ticker == '' or (isinstance(ticker, str) and ticker.upper() == 'AUTO'):
+        tickers = None  # Select all stocks
     elif isinstance(ticker, str):
         tickers = [ticker]
     elif isinstance(ticker, list):
@@ -293,18 +326,23 @@ def make_suggestion(ticker=None, cash=30000, mode='paper'):
     else:
         raise ValueError('ticker must be a string or list of strings')
 
+    # Validate cash
     if cash is None:
-        cash = 30000
-    try:
-        cash_value = float(cash)
-    except (TypeError, ValueError):
-        raise ValueError('cash must be a number')
+        cash_value = 30000
+    else:
+        try:
+            cash_value = float(cash)
+        except (TypeError, ValueError):
+            raise ValueError('cash must be a number')
+    
     if cash_value < 0:
         raise ValueError('cash must be non-negative')
 
-    simulator = PaperTradingSimulator(initial_balance=cash_value, start_fresh=True, use_nn_predictor=False)
+    # Initialize simulator with persistent account (not fresh)
+    simulator = PaperTradingSimulator(initial_balance=cash_value, start_fresh=False, use_nn_predictor=False)
     suggestions, current_prices = simulator.get_ai_suggestion()
 
+    # Filter by ticker if specified
     if tickers is not None:
         tickers = [str(code) for code in tickers]
         invalid = [code for code in tickers if code not in simulator.stock_codes]
@@ -312,14 +350,28 @@ def make_suggestion(ticker=None, cash=30000, mode='paper'):
             raise ValueError(f'Unsupported ticker(s): {invalid}')
         suggestions = {code: detail for code, detail in suggestions.items() if code in tickers}
 
-    suggestions = _normalize_suggestions(suggestions)
-    current_prices = {code: float(price) for code, price in current_prices.items()}
+    # Execute trades if requested
+    if execute:
+        simulator.execute_paper_trade(suggestions, current_prices)
+        simulator.save_account()
+
+    # Calculate portfolio value
+    portfolio_value = simulator.calculate_portfolio_value(current_prices)
+
+    # Normalize suggestions
+    normalized_suggestions = _normalize_suggestions(suggestions)
+    normalized_prices = {code: float(price) for code, price in current_prices.items()}
+    normalized_holdings = {code: float(shares) for code, shares in simulator.holdings.items()}
 
     return {
         'mode': mode,
-        'cash': cash_value,
-        'suggestions': suggestions,
-        'current_prices': current_prices
+        'cash': float(cash_value),
+        'executed': bool(execute),
+        'balance_after': float(simulator.balance),
+        'portfolio_value': float(portfolio_value),
+        'holdings': _to_python_types(normalized_holdings),
+        'suggestions': normalized_suggestions,
+        'current_prices': normalized_prices
     }
 
 

@@ -1,8 +1,10 @@
 fastapi
 uvicorn[standard]
-pandas
+pydantic
 numpy
-torch
+pandas
 stable-baselines3
 gymnasium
+torch
 requests
+python-multipart
