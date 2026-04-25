@@ -313,6 +313,8 @@ def make_suggestion(ticker=None, cash=30000, mode='paper', execute=True):
     Returns:
         Dict with suggestions, prices, and account state
     """
+    if isinstance(ticker, str) and ticker.strip().lower() in ("", "auto"):
+        ticker = None
     if mode != 'paper':
         raise ValueError("Only 'paper' mode is supported")
 
