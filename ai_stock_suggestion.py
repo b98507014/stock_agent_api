@@ -32,8 +32,8 @@ class PaperTradingSimulator:
         else:
             raise FileNotFoundError(f"PPO model not found at {model_path}")
 
-        # Initialize environment for suggestions
-        self.env = StockTradingEnv(use_nn_predictor=self.use_nn_predictor)
+        # Initialize environment for suggestions (will be reinitialized if data updates)
+        self.env = None
 
     def load_account(self):
         """Load account state from file"""
@@ -99,11 +99,25 @@ class PaperTradingSimulator:
         """Get AI trading suggestions for today"""
         print("Getting AI trading suggestions...")
 
+        # Initialize environment if not already done
+        if self.env is None:
+            print("Initializing environment...")
+            self.env = StockTradingEnv(use_nn_predictor=self.use_nn_predictor)
+
+        # Ensure environment has latest data by reinitializing if needed
+        try:
+            # Try to access stock data to check if env is valid
+            _ = self.env.stock_data
+        except:
+            # Reinitialize environment with current data
+            print("Reinitializing environment with updated data...")
+            self.env = StockTradingEnv(use_nn_predictor=self.use_nn_predictor)
+
         # Reset environment to get current observation
         obs, _ = self.env.reset()
 
-        # Get AI prediction
-        action, _ = self.model.predict(obs, deterministic=True)
+        # Get AI prediction (changed to deterministic=False for randomness)
+        action, _ = self.model.predict(obs, deterministic=False)
 
         current_prices = self.get_current_prices()
         suggestions = {}
@@ -342,6 +356,10 @@ def make_suggestion(ticker=None, cash=30000, mode='paper', execute=True):
 
     # Initialize simulator with persistent account (not fresh)
     simulator = PaperTradingSimulator(initial_balance=cash_value, start_fresh=False, use_nn_predictor=False)
+    
+    # Update stock data before getting suggestions
+    simulator.update_stock_data()
+    
     suggestions, current_prices = simulator.get_ai_suggestion()
 
     # Filter by ticker if specified

@@ -86,6 +86,8 @@ def fetch_stock_history(stock_code):
     
     if new_data:
         new_df = pd.DataFrame(new_data).set_index('Date')
+        # Ensure consistent datetime index
+        new_df.index = pd.to_datetime(new_df.index)
         df = pd.concat([df, new_df]).drop_duplicates().sort_index()
         df.to_csv(data_file)
     

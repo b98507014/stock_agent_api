@@ -60,3 +60,11 @@ async def generic_exception_handler(request, exc):
         content={"error": "Internal server error", "message": str(exc)},
     )
 
+
+if __name__ == "__main__":
+    import uvicorn
+    import os
+    # Set working directory to script location
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    uvicorn.run(app, host="0.0.0.0", port=8001)
+

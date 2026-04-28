@@ -55,7 +55,10 @@ class StockTradingEnv(gym.Env):
                     self.dates = self.dates.intersection(df.index)
 
         if not self.stock_data:
-            raise ValueError("No stock data found. Please run fetch_stock_history.py first.")
+            print("Warning: No stock data found. Environment will not function properly.")
+            # Don't raise error, allow initialization for later data loading
+            self.dates = pd.date_range(start='2020-01-01', periods=1, freq='D')
+            self.n_dates = len(self.dates)
 
         # Align all data to common dates
         for code in self.stock_codes:
@@ -151,7 +154,8 @@ class StockTradingEnv(gym.Env):
         current_prices = []
         for code in self.stock_codes:
             if code in self.stock_data:
-                day_data = self.stock_data[code].iloc[self.current_step]
+                # Use latest available data instead of current_step
+                day_data = self.stock_data[code].iloc[-1]  # Last row (most recent)
                 current_prices.extend([day_data['Open'], day_data['High'],
                                      day_data['Low'], day_data['Close'], day_data['Volume']])
             else:
