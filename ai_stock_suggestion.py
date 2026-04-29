@@ -9,7 +9,7 @@ from RL_simulator import StockTradingEnv
 from fetch_stock_history import fetch_multiple_stocks
 
 class PaperTradingSimulator:
-    def __init__(self, initial_balance=30000, account_file='paper_trading_account.json', start_fresh=False, use_nn_predictor=True):
+    def __init__(self, initial_balance=30000, account_file='/data/paper_trading_account.json', start_fresh=False, use_nn_predictor=True):
         self.initial_balance = initial_balance
         self.account_file = account_file
         self.start_fresh = start_fresh
@@ -301,6 +301,67 @@ def _to_python_types(value):
         return value
 
 
+def format_trading_report(current_balance, current_portfolio_value, current_holdings, 
+                         current_prices, suggestions, balance_after, portfolio_value_after):
+    """Format trading suggestions into a readable text report for Telegram.
+    
+    Args:
+        current_balance: Balance before trading
+        current_portfolio_value: Portfolio value before trading
+        current_holdings: Dict of holdings before trading
+        current_prices: Dict of current prices
+        suggestions: Dict of AI suggestions
+        balance_after: Balance after executing trades
+        portfolio_value_after: Portfolio value after trading
+        
+    Returns:
+        String formatted report
+    """
+    report_lines = []
+    report_lines.append("=" * 50)
+    report_lines.append("AI Stock Suggestion - Paper Trading Simulation")
+    report_lines.append("=" * 50)
+    
+    # Current status before trading
+    report_lines.append(f"\nCurrent Balance: {current_balance:.2f} TWD")
+    report_lines.append(f"Current Portfolio Value: {current_portfolio_value:.2f} TWD")
+    report_lines.append("Current Holdings:")
+    
+    has_holdings = False
+    for code, shares in current_holdings.items():
+        if shares > 0:
+            has_holdings = True
+            value = shares * current_prices.get(code, 0)
+            report_lines.append(f"  {code}: {shares:.2f} shares ({value:.2f} TWD)")
+    
+    if not has_holdings:
+        report_lines.append("  (No holdings)")
+    
+    # AI Suggestions
+    report_lines.append("\nAI Suggestions:")
+    for code, detail in suggestions.items():
+        action = detail['action']
+        shares = detail['shares']
+        amount = detail['amount']
+        price = detail['price']
+        note = detail.get('note', '')
+        
+        if action == 'BUY':
+            report_lines.append(f"  {code}: BUY {shares} shares, amount {amount:.2f} TWD, price {price:.2f} ({note})")
+        elif action == 'SELL':
+            report_lines.append(f"  {code}: SELL {shares} shares, expected revenue {amount:.2f} TWD, price {price:.2f} ({note})")
+        else:
+            report_lines.append(f"  {code}: HOLD ({note})")
+    
+    # After trading status
+    report_lines.append(f"\nAfter Trading - Balance: {balance_after:.2f} TWD")
+    report_lines.append(f"After Trading - Portfolio Value: {portfolio_value_after:.2f} TWD")
+    report_lines.append("\nDaily simulation completed!")
+    report_lines.append("=" * 50)
+    
+    return "\n".join(report_lines)
+
+
 def _normalize_suggestions(suggestions):
     """Normalize suggestions and convert all types to Python native types."""
     normalized = {}
@@ -370,18 +431,34 @@ def make_suggestion(ticker=None, cash=30000, mode='paper', execute=True):
             raise ValueError(f'Unsupported ticker(s): {invalid}')
         suggestions = {code: detail for code, detail in suggestions.items() if code in tickers}
 
+    # Store current state before executing trades
+    balance_before = simulator.balance
+    portfolio_value_before = simulator.calculate_portfolio_value(current_prices)
+    holdings_before = dict(simulator.holdings)
+
     # Execute trades if requested
     if execute:
         simulator.execute_paper_trade(suggestions, current_prices)
         simulator.save_account()
 
-    # Calculate portfolio value
+    # Calculate portfolio value after trades
     portfolio_value = simulator.calculate_portfolio_value(current_prices)
 
     # Normalize suggestions
     normalized_suggestions = _normalize_suggestions(suggestions)
     normalized_prices = {code: float(price) for code, price in current_prices.items()}
     normalized_holdings = {code: float(shares) for code, shares in simulator.holdings.items()}
+
+    # Generate trading report for Telegram
+    trading_report = format_trading_report(
+        current_balance=balance_before,
+        current_portfolio_value=portfolio_value_before,
+        current_holdings=holdings_before,
+        current_prices=current_prices,
+        suggestions=suggestions,
+        balance_after=float(simulator.balance),
+        portfolio_value_after=float(portfolio_value)
+    )
 
     return {
         'mode': mode,
@@ -391,7 +468,8 @@ def make_suggestion(ticker=None, cash=30000, mode='paper', execute=True):
         'portfolio_value': float(portfolio_value),
         'holdings': _to_python_types(normalized_holdings),
         'suggestions': normalized_suggestions,
-        'current_prices': normalized_prices
+        'current_prices': normalized_prices,
+        'telegram_text': trading_report
     }
 
 
