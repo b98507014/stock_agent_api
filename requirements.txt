@@ -8,3 +8,5 @@ gymnasium
 torch
 requests
 python-multipart
+python-telegram-bot
+
