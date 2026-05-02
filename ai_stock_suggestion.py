@@ -236,7 +236,8 @@ class PaperTradingSimulator:
         print("=" * 50)
 
         # Update stock data first (with error handling)
-        self.update_stock_data()
+        if update_data:
+            self.update_stock_data()
 
         # Get current prices and portfolio value
         current_prices = self.get_current_prices()
