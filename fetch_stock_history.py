@@ -5,13 +5,15 @@ import datetime
 import os
 import json
 
-def fetch_stock_history(stock_code):
+def fetch_stock_history(stock_code, months_limit=3):
     """
     Fetches Taiwanese stock historical data from TWSE website and updates the local CSV file.
     Combines new data with existing data for AI training purposes.
     
     Args:
         stock_code (str): The stock code, e.g., '2330'
+        months_limit (int or None): Limit to recent N months (default 3 for API speed). 
+                                     Use None to fetch all available data (for training).
     
     Returns:
         pd.DataFrame: The updated DataFrame with historical stock data
@@ -44,7 +46,19 @@ def fetch_stock_history(stock_code):
             return None
     
     new_data = []
-    current = last_date.replace(day=1)  # Start from the beginning of the month after last_date
+    
+    # Determine start date based on months_limit
+    if months_limit is not None:
+        # Calculate date N months ago
+        start_of_this_month = today.replace(day=1)
+        for _ in range(months_limit):
+            start_of_this_month = (start_of_this_month - datetime.timedelta(days=1)).replace(day=1)
+        start_date = start_of_this_month
+    else:
+        # Use existing data's last date for unlimited fetch
+        start_date = last_date
+    
+    current = max(start_date, last_date).replace(day=1)  # Start from the later of the two dates
     
     while current <= today:
         date_str = current.strftime('%Y%m%d')
@@ -93,13 +107,15 @@ def fetch_stock_history(stock_code):
     
     return df
 
-def fetch_multiple_stocks(stock_codes=None):
+def fetch_multiple_stocks(stock_codes=None, months_limit=3):
     """
     Fetches historical data for multiple Taiwanese stocks.
     If stock_codes is None, uses a default diverse list of stocks.
     
     Args:
         stock_codes (list): List of stock codes, e.g., ['2330', '2454']
+        months_limit (int or None): Limit to recent N months (default 3 for API speed).
+                                     Use None to fetch all available data (for training).
     
     Returns:
         dict: Dictionary with stock codes as keys and DataFrames as values
@@ -137,7 +153,7 @@ def fetch_multiple_stocks(stock_codes=None):
     results = {}
     for code in stock_codes:
         print(f"Fetching data for stock {code}...")
-        df = fetch_stock_history(code)
+        df = fetch_stock_history(code, months_limit=months_limit)
         results[code] = df
         print(f"Completed {code}: {len(df)} records")
     
