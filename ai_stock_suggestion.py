@@ -376,7 +376,7 @@ def _normalize_suggestions(suggestions):
     return _to_python_types(normalized)
 
 
-def make_suggestion(ticker=None, cash=30000, mode='paper', execute=True):
+def make_suggestion(ticker=None, cash=30000, mode='paper', execute=True, update_data=False):
     """Generate AI trading suggestions and optionally execute trades.
     
     Args:
