@@ -420,6 +420,7 @@ def make_suggestion(ticker=None, cash=30000, mode='paper', execute=True, update_
     simulator = PaperTradingSimulator(initial_balance=cash_value, start_fresh=False, use_nn_predictor=False)
     
     # Update stock data before getting suggestions
+    print('update_data',update_data)
     if update_data:
         simulator.update_stock_data()
     #simulator.update_stock_data()
