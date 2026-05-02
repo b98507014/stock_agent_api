@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, validator
 from typing import Optional, Union, List
+import requests
 
 from ai_stock_suggestion import make_suggestion
 
@@ -51,6 +52,30 @@ async def suggest(request: SuggestRequest):
             status_code=500,
             content={"error": "Internal server error", "message": str(exc)},
         )
+
+
+@app.get("/fetch-simple")
+async def fetch_simple():
+    """Simple test endpoint to fetch TWSE API data for stock 2330"""
+    try:
+        url = "https://www.twse.com.tw/exchangeReport/STOCK_DAY?response=json&date=20240101&stockNo=2330"
+        headers = {"User-Agent": "Mozilla/5.0"}
+        
+        response = requests.get(url, timeout=5, headers=headers)
+        response.raise_for_status()
+        
+        data = response.json()
+        data_count = len(data.get("data", []))
+        
+        return {
+            "status": "ok",
+            "data_count": data_count
+        }
+    except Exception as exc:
+        return {
+            "status": "failed",
+            "error": str(exc)
+        }
 
 
 @app.exception_handler(Exception)
