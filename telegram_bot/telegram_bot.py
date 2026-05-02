@@ -60,7 +60,8 @@ async def send_trading_response(update: Update, context: ContextTypes.DEFAULT_TY
         logger.info(f"Calling {STOCK_API_URL}")
         payload = {
             "mode": "paper",
-            "execute": True
+            "execute": True,
+            "update_data": False
         }
         
         response = requests.post(
