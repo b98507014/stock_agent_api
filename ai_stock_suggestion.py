@@ -415,12 +415,12 @@ def make_suggestion(ticker=None, cash=30000, mode='paper', execute=True, update_
     
     if cash_value < 0:
         raise ValueError('cash must be non-negative')
-
+    print('update_data1',update_data)
     # Initialize simulator with persistent account (not fresh)
     simulator = PaperTradingSimulator(initial_balance=cash_value, start_fresh=False, use_nn_predictor=False)
     
     # Update stock data before getting suggestions
-    print('update_data',update_data)
+    print('update_data2',update_data)
     if update_data:
         simulator.update_stock_data()
     #simulator.update_stock_data()
