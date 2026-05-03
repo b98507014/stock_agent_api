@@ -28,6 +28,11 @@ async def health():
 	return {"status": "ok"}
 
 
+@app.get("/version")
+async def version():
+	return {"version": "debug-no-import-fetch-v1"}
+
+
 @app.post("/suggest")
 async def suggest(request: SuggestRequest):
 	try:

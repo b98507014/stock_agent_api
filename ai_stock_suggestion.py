@@ -6,7 +6,7 @@ import numpy as np
 from datetime import datetime, timedelta
 from stable_baselines3 import PPO
 from RL_simulator import StockTradingEnv
-from fetch_stock_history import fetch_multiple_stocks
+# from fetch_stock_history import fetch_multiple_stocks  # Remove import-time import
 
 class PaperTradingSimulator:
     def __init__(self, initial_balance=30000, account_file='/data/paper_trading_account.json', start_fresh=False, use_nn_predictor=True):
@@ -67,7 +67,11 @@ class PaperTradingSimulator:
 
     def update_stock_data(self):
         """Update all stock data"""
+        import traceback
+        print("update_stock_data CALLED")
+        traceback.print_stack()
         print("Updating stock data...")
+        from fetch_stock_history import fetch_multiple_stocks
         try:
             fetch_multiple_stocks()
             print("Stock data updated successfully")
