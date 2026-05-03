@@ -3,10 +3,47 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, validator
 from typing import Optional, Union, List
 import requests
+import pandas as pd
 
 from ai_stock_suggestion import make_suggestion
 
 app = FastAPI(title="Stock RL Suggestion API")
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Preload basic stock data on startup for Railway"""
+    import os
+    from pathlib import Path
+    
+    print("Railway startup: Checking for stock data...")
+    
+    # Check if we have any stock data
+    stock_dir = Path("stock_data")
+    if not stock_dir.exists():
+        stock_dir.mkdir()
+        print("Created stock_data directory")
+    
+    csv_files = list(stock_dir.glob("*.csv"))
+    if not csv_files:
+        print("No stock data found - this is expected for fresh Railway deployment")
+        print("The system will work with AI models trained on historical data")
+        print("Real-time updates will be attempted but may fail due to network restrictions")
+    else:
+        print(f"Found {len(csv_files)} stock data files")
+        
+        # Quick validation
+        total_records = 0
+        for csv_file in csv_files[:5]:  # Check first 5 files
+            try:
+                df = pd.read_csv(csv_file)
+                total_records += len(df)
+            except Exception as e:
+                print(f"Warning: Could not read {csv_file}: {e}")
+        
+        print(f"Total records in sample files: {total_records}")
+    
+    print("Railway startup complete - system ready")
 
 
 class SuggestRequest(BaseModel):
@@ -26,6 +63,11 @@ class SuggestRequest(BaseModel):
 @app.get("/health")
 async def health():
 	return {"status": "ok"}
+
+
+@app.get("/version")
+async def version():
+	return {"version": "railway-network-aware-v1"}
 
 
 @app.get("/test-network")

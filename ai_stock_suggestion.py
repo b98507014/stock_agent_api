@@ -67,15 +67,15 @@ class PaperTradingSimulator:
 
     def update_stock_data(self):
         """Update all stock data"""
-        print("Updating stock data...")
-        from fetch_stock_history import fetch_multiple_stocks
+        print("Starting stock data update...")
         try:
+            from fetch_stock_history import fetch_multiple_stocks
             fetch_multiple_stocks()
             print("Stock data updated successfully")
         except Exception as e:
-            print(f"Failed to update stock data: {e}")
-            print("Using existing data for simulation")
-            # Continue with existing data
+            print(f"Stock data update failed: {e}")
+            print("Continuing with existing data - this is normal for Railway deployment")
+            # Don't raise error, continue with existing data
 
     def get_current_prices(self):
         """Get current prices from the latest data"""
