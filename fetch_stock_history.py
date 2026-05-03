@@ -54,13 +54,16 @@ def fetch_stock_history(stock_code, months_limit=3):
         for _ in range(months_limit):
             start_of_this_month = (start_of_this_month - datetime.timedelta(days=1)).replace(day=1)
         start_date = start_of_this_month
+        # For limited fetch, always start from calculated date, ignore existing data
+        current = start_date.replace(day=1)
+        max_iterations = months_limit + 2  # Safety limit
     else:
         # Use existing data's last date for unlimited fetch
-        start_date = last_date
+        current = last_date.replace(day=1)
+        max_iterations = 1000  # Much higher limit for unlimited fetch
     
-    current = max(start_date, last_date).replace(day=1)  # Start from the later of the two dates
-    
-    while current <= today:
+    iteration_count = 0
+    while current <= today and iteration_count < max_iterations:
         date_str = current.strftime('%Y%m%d')
         url = f'https://www.twse.com.tw/exchangeReport/STOCK_DAY?response=json&date={date_str}&stockNo={stock_code}'
         
@@ -102,11 +105,13 @@ def fetch_stock_history(stock_code, months_limit=3):
                             })
                         except (ValueError, IndexError):
                             continue  # Skip invalid rows
-        except requests.RequestException:
-            continue  # Skip if request fails
+        except requests.RequestException as e:
+            print(f"Request failed for {date_str}: {e}")
+            # Continue to next month even if request fails
         
-        # Move to the next month
+        # Always move to the next month, regardless of request success
         current = (current + datetime.timedelta(days=32)).replace(day=1)
+        iteration_count += 1
     
     if new_data:
         new_df = pd.DataFrame(new_data).set_index('Date')
