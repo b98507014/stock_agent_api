@@ -67,9 +67,6 @@ class PaperTradingSimulator:
 
     def update_stock_data(self):
         """Update all stock data"""
-        import traceback
-        print("update_stock_data CALLED")
-        traceback.print_stack()
         print("Updating stock data...")
         from fetch_stock_history import fetch_multiple_stocks
         try:
@@ -381,7 +378,7 @@ def _normalize_suggestions(suggestions):
     return _to_python_types(normalized)
 
 
-def make_suggestion(ticker=None, cash=30000, mode='paper', execute=True, update_data=False):
+def make_suggestion(ticker=None, cash=30000, mode='paper', execute=True):
     """Generate AI trading suggestions and optionally execute trades.
     
     Args:
@@ -419,15 +416,12 @@ def make_suggestion(ticker=None, cash=30000, mode='paper', execute=True, update_
     
     if cash_value < 0:
         raise ValueError('cash must be non-negative')
-    print('update_data1',update_data)
+    
     # Initialize simulator with persistent account (not fresh)
     simulator = PaperTradingSimulator(initial_balance=cash_value, start_fresh=False, use_nn_predictor=False)
     
-    # Update stock data before getting suggestions
-    print('update_data2',update_data)
-    if update_data:
-        simulator.update_stock_data()
-    #simulator.update_stock_data()
+    # Always update stock data with efficient fetch (recent 3 months only)
+    simulator.update_stock_data()
     
     suggestions, current_prices = simulator.get_ai_suggestion()
 

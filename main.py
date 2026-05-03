@@ -14,7 +14,7 @@ class SuggestRequest(BaseModel):
 	cash: Optional[float] = Field(default=30000, gt=0)
 	mode: str = Field(default="paper")
 	execute: bool = Field(default=True)
-	update_data: bool = Field(default=False)
+	# update_data: bool = Field(default=False)  # Removed update_data control
 
 	@validator("mode")
 	def validate_mode(cls, value):
@@ -30,7 +30,7 @@ async def health():
 
 @app.get("/version")
 async def version():
-	return {"version": "debug-no-import-fetch-v1"}
+	return {"version": "auto-update-efficient-fetch-v1"}
 
 
 @app.post("/suggest")
@@ -40,8 +40,8 @@ async def suggest(request: SuggestRequest):
 			ticker=request.ticker,
 			cash=request.cash,
 			mode=request.mode,
-			execute=request.execute,
-			update_data=request.update_data
+			execute=request.execute
+			# update_data=request.update_data  # Removed update_data parameter
 		)
 		return result
 	except ValueError as exc:

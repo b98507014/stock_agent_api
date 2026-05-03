@@ -60,8 +60,8 @@ async def send_trading_response(update: Update, context: ContextTypes.DEFAULT_TY
         logger.info(f"Calling {STOCK_API_URL}")
         payload = {
             "mode": "paper",
-            "execute": True,
-            "update_data": False
+            "execute": True
+            # "update_data": False  # Removed, now always updates with efficient fetch
         }
         
         response = requests.post(
