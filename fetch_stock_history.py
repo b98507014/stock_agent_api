@@ -65,9 +65,19 @@ def fetch_stock_history(stock_code, months_limit=3):
         url = f'https://www.twse.com.tw/exchangeReport/STOCK_DAY?response=json&date={date_str}&stockNo={stock_code}'
         
         try:
-            response = requests.get(url, timeout=10)
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+                "Accept": "application/json, text/plain, */*",
+                "Accept-Language": "zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7",
+                "Referer": "https://www.twse.com.tw/",
+                "Connection": "keep-alive"
+            }
+            print(f"Fetching {stock_code} data for {date_str}...")
+            response = requests.get(url, timeout=15, headers=headers)
+            print(f"Response status: {response.status_code}")
             response.raise_for_status()
             data = response.json()
+            print(f"Received data with {len(data.get('data', []))} records")
             
             if 'data' in data and data['data']:
                 for row in data['data']:
